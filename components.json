@@ -1,0 +1,10 @@
+{
+  "gal-extender": {
+    "url": "../gal-extender.git",
+    "commit": "05271631a8c424d573401cb87eb08f929c8d1c56"
+  },
+  "dio-extender": {
+    "url": "../dio-extender.git",
+    "commit": "f3b1e4ac8d328d4bceee17cd669c95f6f6e00b0e"
+  }
+}

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "UP"]
+
+[tool.ty.environment]
+extra-paths = ["scripts"]

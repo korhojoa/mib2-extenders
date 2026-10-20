@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: GPL-3.0-only
+name: Build one install bundle
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a
+    timeout-minutes: 45
+    steps:
+      - name: Get the exact source commit
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          case "$COMMIT_SHA" in ''|*[!0-9a-f]*) exit 2;; esac
+          [ "${#COMMIT_SHA}" -eq 40 ]
+          git init .
+          git remote add origin "$REPOSITORY_URL"
+          git fetch --no-tags --depth=1 origin "$COMMIT_SHA"
+          git checkout --detach FETCH_HEAD
+          [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ]
+          git submodule sync --recursive
+          git submodule update --init --recursive
+      - name: Get pinned Ruff
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib
+          import io
+          import os
+          from pathlib import Path
+          import tarfile
+          import urllib.request
+
+          url = "https://github.com/astral-sh/ruff/releases/download/0.16.9/ruff-x86_64-unknown-linux-musl.tar.gz"
+          with urllib.request.urlopen(url, timeout=60) as response:
+              data = response.read()
+          expected = "6a561ed4bc860472f7833dfb0f0b8285d3969fa627188c5678ea4ac2c462bbee"
+          if hashlib.sha256(data).hexdigest() != expected:
+              raise SystemExit("Ruff archive checksum mismatch")
+          with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
+              member = archive.extractfile("ruff-x86_64-unknown-linux-musl/ruff")
+              if member is None:
+                  raise SystemExit("Ruff executable missing")
+              executable = Path(os.environ["RUNNER_TEMP"]) / "ruff"
+              executable.write_bytes(member.read())
+              executable.chmod(0o755)
+          PYTHON
+      - name: Test package controls
+        run: |
+          "$RUNNER_TEMP/ruff" check scripts
+          "$RUNNER_TEMP/ruff" format --check scripts
+          python3 -B scripts/test-bundle.py
+          python3 -B scripts/test-github-release.py
+      - name: Build with the public QNX compiler container
+        run: |
+          python3 -B scripts/build-release.py --fetch
+          python3 -B scripts/build-release.py
+      - name: Attach the one install bundle on GitHub
+        if: startsWith(github.ref, 'refs/tags/v') && github.server_url == 'https://github.com'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 -B scripts/github-release.py
