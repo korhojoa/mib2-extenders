@@ -24,6 +24,7 @@ jobs:
           case "$COMMIT_SHA" in ''|*[!0-9a-f]*) exit 2;; esac
           [ "${#COMMIT_SHA}" -eq 40 ]
           git init .
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git remote add origin "$REPOSITORY_URL"
           git fetch --no-tags --depth=1 origin "$COMMIT_SHA"
           git checkout --detach FETCH_HEAD
