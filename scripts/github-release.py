@@ -64,7 +64,7 @@ def main() -> None:
         os.environ["GH_REPO"],
         os.environ["TAG"],
         os.environ["GH_TOKEN"],
-        Path("build/mib2-extenders.zip"),
+        Path("build/release/mib2-extenders.zip"),
     )
 
 

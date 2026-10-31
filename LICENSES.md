@@ -4,8 +4,11 @@
 | Source | License |
 | --- | --- |
 | Bundle tools and guides | GPL-3.0-only |
-| GAL integration | GPL-3.0-only; shared crates have their own notices |
-| DIO integration | See the per-crate licenses in the DIO source |
+| GAL | GPL-3.0-only; shared crates have their own notices |
+| DIO | See the per-crate licenses in the DIO source |
+| LSD extender (Java) | GPL-3.0-only |
+| Wireless Android Auto (virtual USB driver) | Apache-2.0 |
+| android-auto-settings | MIT OR Apache-2.0 |
 | `mib2-shared-crates` | MIT OR Apache-2.0 |
 | `qnx650-crates` | Apache-2.0 or MIT OR Apache-2.0, as declared by each crate |
 | FFmpeg | See the selected FFmpeg build and its notices |

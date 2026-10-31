@@ -1,105 +1,67 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 # MIB2 extenders
 
-Build one install bundle for the Android Auto and CarPlay extensions on a
-QNX 6.5 ARMv7 MIB2 High unit. The bundle contains matching native libraries,
-configuration examples, a video decoder, a SHA256 file checksum command,
-license notices and the corresponding public source.
-
-See [Terms](docs/TERMS.md) for the technical names and
-[Settings](docs/SETTINGS.md) for configuration files and values.
+This bundle adds Android Auto and CarPlay extensions to a QNX 6.5 ARMv7
+MIB2 High unit. It includes wireless Android Auto and an independent settings
+page. The Android Auto extensions require a licensed Android Auto receiver.
+The CarPlay extensions require a licensed CarPlay receiver.
+The Java archives contain our feature classes and their release metadata.
 
 | Part | Function |
 | --- | --- |
-| [GAL](gal-extender/README.md) | Extend the Android Auto receiver. |
-| [DIO](dio-extender/README.md) | Extend the CarPlay receiver. |
-| Shared Rust crates | Supply video, settings and file checksum code. |
-| QNX runtime crates | Supply native runtime interfaces. |
+| GAL | Extend the Android Auto receiver and send its map to the cluster. |
+| DIO | Extend the CarPlay receiver and receive its cluster video stream. |
+| LSD extender | Load our Java features and supply owned settings pages. |
+| Wireless Android Auto | Use the stock Bluetooth stack and a virtual USB connection. |
+| devu-vaa | Supply the virtual USB driver. |
+| android-auto-settings | Read and save the Android Auto settings. |
 
-The shared repositories are pinned dependencies of both extenders. The
-bundle contains no unit firmware or development kit.
-
-## Included features
-
-- Android Auto map video on the instrument cluster, the display behind the
-  steering wheel, through GAL.
-- A CarPlay receiver, forwarder and decoder for cluster video. This path has
-  startup tests only, not a unit display result.
-- Vehicle sensor data for Android Auto through the optional GAL `sensor`
-  feature. The supplied GAL configuration enables this feature.
-- Optional GAL input controls, a settings menu, wireless transport, a data
-  uplink and a command launcher. These features are off in the bundle example
-  and do not have test results for this bundle on a MIB2 High unit.
-- Optional DIO direct video output, map zoom, vehicle-data tools and video
-  replay tools. These features are off in the bundle example. The standalone
-  tools are available in the component source, not in the install folders.
-  Their operation on a MIB2 High unit remains untested for this bundle.
+See [INSTALL.md](INSTALL.md) for installation and removal.
+[Terms](docs/TERMS.md) explains the technical names.
+[Settings](docs/SETTINGS.md) describes the configuration files.
 
 ## Status
 
-Tested on a MIB2 High unit, firmware MHI2_ER_VWG13_P4512_2, 2026-10-20.
+Android Auto and wireless Android Auto worked on a MIB2 High unit with
+firmware MHI2_ER_VWG13_P4512_2 on 2026-10-30. Bluetooth calls worked during
+wireless projection. CarPlay cluster display is not verified with this release.
+A cluster map that is already stuck can remain stuck after projection ends.
 
-The GAL cluster map appeared on the first connection with no stream write
-errors. Native navigation returned after disconnect. The GAL sensor feature
-can send battery level from EXLAP. Other sensor mappings remain unqualified.
-The DIO loader, receiver, forwarder and decoder passed Pi startup checks.
-That test does not prove CarPlay pictures on an instrument cluster.
+## Build
 
-The manual installation command set has not run on an emulated or physical
-unit. It is an unqualified manual procedure. Read the component Status
-sections before selecting a feature.
-
-## Use a prebuilt bundle
-
-If you downloaded a release ZIP, extract it into an empty folder. Skip the
-source and build sections below and follow [INSTALL.md](INSTALL.md).
-The build scripts belong to the Git source checkout; they are not required
-or included in the prebuilt ZIP.
-
-## Get the source
+Install Git, Python 3.11 or later and Podman. Get the source:
 
 ```sh
-git clone --recurse-submodules https://github.com/korhojoa/mib2-extenders.git
+git clone https://github.com/korhojoa/mib2-extenders.git
 cd mib2-extenders
 ```
 
-Keep the selected submodule commits. Every build checks that all component
-and shared dependency checkouts match those commits and have no source edits.
-
-## Build the bundle
-
-Install Python 3.11 or later and Podman. The following commands
-fetch the locked dependencies and build in the pinned public QNX compiler
-image. No unit files or QNX development kit are required.
+The build needs network access for pinned source, Cargo dependencies, FFmpeg
+and the Java compiler. Fetch the pinned compiler image, then build:
 
 ```sh
-python3 -B scripts/build-release.py --fetch
-python3 -B scripts/build-release.py
+podman pull ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a
+python3 -B scripts/build-release.py build
 ```
 
-The first build also downloads and verifies the FFmpeg source. Generated
-files stay under `build`. The output is `build/mib2-extenders.zip`. Its
-`RELEASE.json` records the selected component commits and payload hashes.
-Its `SHA256SUMS` covers the archive files. Both lists are generated during
-the build. The workflow runs the same build and package tests.
+Output: `build/release/mib2-extenders.zip`.
 
-To run the package tests separately:
+## Configuration
 
-```sh
-python3 -B scripts/test-bundle.py
-```
+GAL and DIO read their configuration next to their loaded libraries.
+The supplied LSD configuration enables wireless Android Auto and the owned
+settings backend. It also loads cluster guidance, stream-state feedback and
+vehicle energy data. See [LSD extender settings](docs/SETTINGS.md#lsd-extender)
+for its configuration keys and defaults. Diagnostic logging features, the key
+feed and the TCP command listener are off. The wireless TCP port opening is
+on, on the access point interface `uap0` only. Optional code remains in the
+source and archives; some off features require programs not included here.
 
-## Install
-
-Follow [the manual install guide](INSTALL.md). Copy the selected extender
-folders to one install folder of your choice. Configure each selected phone
-process to preload its own loader. Keep every existing preload and unrelated
-configuration value. Configuration files are copied before libraries.
-
-The build command does not connect to a unit or install software. An automatic
-installer is not supplied. Keep the original unit configuration for recovery.
+Keep untested optional features off. Read the component README files before
+you enable a new feature. A build result alone does not qualify unit behavior.
 
 ## License
 
-The bundle tools and guide use GPL-3.0-only. Each component and dependency
-keeps its own license. See [COPYING](COPYING) and [LICENSES.md](LICENSES.md).
+The bundle tools and guide use GPL-3.0-only. Each component retains its own
+license. See [COPYING](COPYING), [LICENSES.md](LICENSES.md) and the license files
+in each component source folder.

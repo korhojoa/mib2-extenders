@@ -1,6 +1,0 @@
-[submodule "gal-extender"]
-	path = gal-extender
-	url = ../gal-extender.git
-[submodule "dio-extender"]
-	path = dio-extender
-	url = ../dio-extender.git

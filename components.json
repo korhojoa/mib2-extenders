@@ -1,10 +1,159 @@
 {
-  "gal-extender": {
-    "url": "../gal-extender.git",
-    "commit": "05271631a8c424d573401cb87eb08f929c8d1c56"
-  },
-  "dio-extender": {
-    "url": "../dio-extender.git",
-    "commit": "f3b1e4ac8d328d4bceee17cd669c95f6f6e00b0e"
+  "schema": 1,
+  "version": "v0.2.0",
+  "parts": {
+    "gal": {
+      "url": "https://github.com/korhojoa/gal-extender.git",
+      "commit": "06965260673c762c2dcd404f842b2a3d3098b81c",
+      "image": "ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a",
+      "image_source": "compiler-image.txt",
+      "kind": "rust",
+      "commands": [
+        [
+          "sh",
+          "build.sh"
+        ],
+        [
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--target",
+          "armv7-unknown-nto-qnx650",
+          "--manifest-path",
+          "third_party/mib2-shared-crates/Cargo.toml",
+          "-p",
+          "file-checksum"
+        ]
+      ],
+      "outputs": {
+        "lsd-extender/libgal_btshim.so": "@target/armv7-unknown-nto-qnx650/release/libgal_btshim.so",
+        "lsd-extender/aawg-creds": "@target/armv7-unknown-nto-qnx650/publisher/aawg-creds",
+        "lsd-extender/run-native-aa-creds.sh": "bootstrap/run-native-aa-creds.sh",
+        "gal-extender/libgal_loader.so": "@target/armv7-unknown-nto-qnx650/release/libgal_loader.so",
+        "gal-extender/gal_loader.conf": "examples/gal_loader.conf",
+        "mib2-extenders/file-checksum": "@target/armv7-unknown-nto-qnx650/release/file-checksum"
+      },
+      "licenses": {
+        "COPYING": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+        "third_party/qnx650-crates/LICENSE-MIT": "f7215ee0b022b0425270064f0affee89e8e4079151fb8bdcfcf5481b24f7e526",
+        "third_party/qnx650-crates/LICENSE-APACHE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      }
+    },
+    "dio": {
+      "url": "https://github.com/korhojoa/dio-extender.git",
+      "commit": "f3b1e4ac8d328d4bceee17cd669c95f6f6e00b0e",
+      "kind": "rust",
+      "image": "ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a",
+      "image_source": "tools/compiler-image.txt",
+      "commands": [
+        [
+          "cargo",
+          "fetch",
+          "--locked"
+        ],
+        [
+          "python3",
+          "tools/public-build.py"
+        ]
+      ],
+      "outputs": {
+        "dio-extender/libdio_loader.so": "build/public-compiler/libdio_loader.so",
+        "dio-extender/libdio_altscreen.so": "build/public-compiler/libdio_altscreen.so",
+        "dio-extender/libdio_clustervideo.so": "build/public-compiler/libdio_clustervideo.so",
+        "dio-extender/cluster-video": "rust/cluster-video-decoder/target-img-e8c3e25afa71/armv7-unknown-nto-qnx650/release/cluster-video",
+        "dio-extender/dio_loader.conf": "examples/dio_loader.conf"
+      },
+      "licenses": {
+        "COPYING": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+        "LICENSES/MIT.txt": "8acb19a0615a7ee26e2b9b1a0a373bfefb6bb6061fc51812539d53feb246625a",
+        "LICENSES/Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      }
+    },
+    "driver": {
+      "url": "https://github.com/korhojoa/qnx650-rpi-drivers.git",
+      "commit": "0d33584d86843fec11801a60fbe57d360abc37d0",
+      "image": "ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a",
+      "image_source": "rust/compiler-image.txt",
+      "kind": "rust",
+      "commands": [
+        [
+          "bash",
+          "rust/build-rust.sh",
+          "rust/vchiq/vusb"
+        ]
+      ],
+      "outputs": {
+        "lsd-extender/devu-vaa.so": "rust/vchiq/vusb/build/armv7-unknown-nto-qnx650/devu-vaa.so"
+      },
+      "licenses": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "third_party/qnx650-crates/LICENSE-MIT": "f7215ee0b022b0425270064f0affee89e8e4079151fb8bdcfcf5481b24f7e526",
+        "third_party/qnx650-crates/LICENSE-APACHE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      }
+    },
+    "settings": {
+      "url": "https://github.com/korhojoa/mib2-shared-crates.git",
+      "commit": "a48f3412cf24f88753b7525c72262a071969c1e8",
+      "image": "ghcr.io/korhojoa/qnx650-compiler@sha256:85f95b995d4b5dc2c323a6842c29b5c08652f34cc2288f6cc745534f5b2ecc7a",
+      "image_source": "compiler-image.txt",
+      "kind": "rust",
+      "commands": [
+        [
+          "sh",
+          "build.sh"
+        ]
+      ],
+      "outputs": {
+        "lsd-extender/android-auto-settings": "build/android-auto-settings"
+      },
+      "licenses": {
+        "LICENSE-MIT": "f7215ee0b022b0425270064f0affee89e8e4079151fb8bdcfcf5481b24f7e526",
+        "LICENSE-APACHE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      }
+    },
+    "java": {
+      "url": "https://github.com/korhojoa/lsd-extender.git",
+      "commit": "e5710203f436372284e3d67d5971cada66e91479",
+      "image": "docker.io/library/eclipse-temurin@sha256:32733e308c91c4cde5f003e37c3def82bb931e0242bf4062cfa45eefe3814df2",
+      "image_source": "tools/build.py",
+      "kind": "java",
+      "commands": [
+        [
+          "sh",
+          "build.sh"
+        ]
+      ],
+      "outputs": {
+        "lsd-extender/core-build.properties": "build/card/core-build.properties",
+        "lsd-extender/lsd-extender-aasettings.jar": "build/card/lsd-extender-aasettings.jar",
+        "lsd-extender/lsd-extender-homeui.jar": "build/card/lsd-extender-homeui.jar",
+        "lsd-extender/lsd-extender-wirelessaa.jar": "build/card/lsd-extender-wirelessaa.jar",
+        "lsd-extender/lsd-extender.conf": "build/card/lsd-extender.conf",
+        "lsd-extender/lsd-extender.jar": "build/card/lsd-extender.jar",
+        "lsd-extender/mount-vaa.sh": "build/card/mount-vaa.sh",
+        "lsd-extender/native-aa-kit/SHA256SUMS": "build/card/native-aa-kit/SHA256SUMS",
+        "lsd-extender/native-aa-kit/VERSION": "build/card/native-aa-kit/VERSION",
+        "lsd-extender/native-aa-kit/btstack": "build/card/native-aa-kit/btstack",
+        "lsd-extender/native-aa-kit/install.sh": "build/card/native-aa-kit/install.sh",
+        "lsd-extender/native-aa-kit/remove.sh": "build/card/native-aa-kit/remove.sh",
+        "lsd-extender/lsd-extender-aa-guidance.jar": "build/card/lsd-extender-aa-guidance.jar",
+        "lsd-extender/lsd-extender-kombisync.jar": "build/card/lsd-extender-kombisync.jar",
+        "lsd-extender/lsd-extender-ev.jar": "build/card/lsd-extender-ev.jar"
+      },
+      "banners": {
+        "lsd-extender-aasettings.jar": "lsd-extender-aasettings 1.0.2+422 built=2026-10-22T17:37:56Z git=13061ed",
+        "lsd-extender-homeui.jar": "lsd-extender-homeui 2.9.6+529 built=2026-10-28T01:20:09Z git=885bd8f",
+        "lsd-extender-wirelessaa.jar": "lsd-extender-wirelessaa 2.0.2+522 built=2026-10-27T21:21:36Z git=9363d47",
+        "lsd-extender.jar": "lsd-extender-core 2.3.2+522 built=2026-10-27T21:21:36Z git=9363d47",
+        "lsd-extender-aa-guidance.jar": "lsd-extender-aa-guidance 2.0.1+422 built=2026-10-22T17:37:56Z git=13061ed",
+        "lsd-extender-kombisync.jar": "lsd-extender-kombisync 1.1.0+422 built=2026-10-22T17:37:56Z git=13061ed",
+        "lsd-extender-ev.jar": "lsd-extender-ev 1.0.1+422 built=2026-10-22T17:37:56Z git=13061ed"
+      },
+      "licenses": {
+        "COPYING": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      }
+    }
   }
 }

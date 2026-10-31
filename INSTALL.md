@@ -1,309 +1,320 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
-# Manual installation
+# Install and remove the extensions
 
-## Scope
+## Before you start
 
-This guide installs the GAL and DIO native extensions on a MIB2 High unit.
-Android Auto or CarPlay must already be licensed and working. This bundle
-does not add a license, remove component protection or update firmware.
+This release supplies GAL, DIO, LSD extender and wireless Android Auto.
+Each extension needs its corresponding licensed receiver: Android Auto for
+the Android Auto extensions, and CarPlay for the CarPlay extensions. Check
+that the receiver you will use works with a cable.
+It supplies no firmware or stock program. The cluster map can fail to return
+from an already faulty cluster state. Keep a working recovery method.
 
-GAL extends the Android Auto receiver. DIO extends the CarPlay receiver.
-See the [Terms](docs/TERMS.md) for the process and build names.
-Install either part or both. Keep the stock main projection path. The bundle
-contains no firmware or unit libraries.
+Install a compatible [M.I.B. toolkit](https://github.com/Mr-MIBonk/M.I.B._More-Incredible-Bash#readme)
+first. Follow its instructions for the MMX command shell and file transfer.
+MMX is the unit computer that runs the phone receivers. Keep a complete
+backup. Do not use startup files from a different unit or firmware.
 
-The two shared source repositories supply runtime interfaces, video code,
-settings code and the file checksum command. They are build dependencies;
-do not copy their source directories into a unit system directory.
-
-## Status
-
-The GAL map test and the DIO Pi startup checks are described in
-[the release status](README.md#status). The install command set below has
-not run on an emulated or physical unit. It remains an unqualified manual
-procedure. A successful build or startup banner does not qualify these
-startup-file changes. No automatic installer is supplied.
-
-## Requirements
-
-Start with the stock unit files. Save its firmware version, a complete backup
-and a working recovery method. First install a compatible M.I.B. toolkit from
-its [upstream instructions](https://github.com/Mr-MIBonk/M.I.B._More-Incredible-Bash#readme).
-The toolkit and its credentials are not in this bundle. Check its engineering
-menu, MMX command shell and file-copy method before you change startup
-configuration. MMX is the computer that runs the phone receivers.
-
-Use a computer with OpenSSH, Python 3 and an archive tool. Keep the complete
-release on that computer. Extract the ZIP into an empty folder, then open a
-terminal in the extracted folder that contains `SHA256SUMS`, `README.md` and
-`card`. Verify all files before preparation.
-
-On Linux, run:
+Extract the release ZIP on a computer with Python 3.11 or later. Open a
+terminal in the extracted folder. Check all files. On Linux, use:
 
 ```sh
 sha256sum -c SHA256SUMS
 ```
 
-On macOS, run:
+On macOS, use:
 
 ```sh
 shasum -a 256 -c SHA256SUMS
 ```
 
-Every entry must report `OK`; stop on a missing file or checksum error.
-These commands run on the computer. The bundled `file-checksum` binary runs
-only on the QNX ARM unit. Do not combine files from different releases.
+Stop unless every file reports OK. Keep the complete extracted release.
 
-Choose one writable install folder on an SD card, a USB drive or internal
-storage. Keep removable storage connected before the unit starts. The toolkit
-must mount that storage before it starts either phone receiver. Storage that
-you connect after Android Auto or CarPlay starts cannot supply the loader. Use the same folder throughout this guide. Replace the single
-placeholder `<INSTALL_FOLDER>` with that folder's absolute path, including
-in the two JSON examples. Do not include the placeholder brackets. The folder
-can be on either SD slot, USB storage or internal storage. Use the toolkit
-startup instructions to check its mount order before you enable the preload. Do not format or replace toolkit files.
-Use only letters, digits, slashes, hyphens, underscores and periods in this
-folder name. Spaces and colons cannot be used in a preload path.
+Choose one writable storage folder. Replace `<INSTALL_FOLDER>` everywhere
+below with its absolute path, without the brackets. Use only letters,
+digits, slashes, periods, underscores and hyphens. Do not use spaces or
+colons. The folder must be available before the phone receivers start.
+Keep removable storage connected. Do not format or replace toolkit files.
 
-## Prepare the configuration
+These steps are for a first install. If the unit already has an extension,
+keep its settings and existing startup changes. Do not replace them with
+these examples. Compare the changes before an update.
 
-Copy the unit's current `/etc/eso/production/smartphone_integrator.json` to
-the computer. Save a second, unchanged copy outside every public repository.
-Do not use a file from another unit or firmware.
+## Prepare files on the computer
 
-The file uses JSON, a structured text format for configuration.
-In a working copy, find `children.gal` and `children.carplay`. Confirm that
-their executables are `gal` and `dio_manager`. In each selected child's
-`envs` array, add the corresponding string:
+Copy these two current files from the unit to the computer:
+
+- `/mnt/app/eso/hmi/lsd/lsd.sh`
+- `/etc/eso/production/smartphone_integrator.json`
+
+Keep unchanged copies outside the release folder. They are your recovery
+files. Do not publish them. Keep their original file modes too.
+
+Run this command on the computer with your copy of `lsd.sh`:
+
+```sh
+python3 scripts/prepare-install.py --launcher lsd.sh --install-folder <INSTALL_FOLDER> --output prepared
+```
+
+The output folder must not exist. This command changes no unit file.
+It supplies a configured `prepared/card` tree and `prepared/lsd.sh.prepared`.
+The latter adds our Java startup block before the unchanged native Java
+launch line. The tool refuses a launcher that already has that extension.
+It changes only text configuration; native libraries stay unchanged.
+Check `prepared/SHA256SUMS` from inside the prepared folder with the same
+checksum command. Review the startup diff on the computer:
+
+```sh
+diff -u lsd.sh prepared/lsd.sh.prepared
+```
+
+In a working copy of `smartphone_integrator.json`, find `children.gal` and
+`children.carplay`. Their executables must be `gal` and `dio_manager`.
+Add this string to the GAL child's `envs` array:
 
 ```json
 "LD_PRELOAD=<INSTALL_FOLDER>/gal-extender/libgal_loader.so"
 ```
 
+Add this string to the CarPlay child's `envs` array:
+
 ```json
 "LD_PRELOAD=<INSTALL_FOLDER>/dio-extender/libdio_loader.so"
 ```
 
-`LD_PRELOAD` tells the operating system which libraries to load before a
-process starts. These are separate child environments. Do not set a global
-preload. Keep the arguments, working directories, other children and all existing environment
-values. If a selected child already has `LD_PRELOAD`, append the extender path
-to its existing value with a colon. Do not add a second variable or discard
-the existing preload. Do not apply a loader to the toolkit shell or Bluetooth
-process. Review the exact diff before copying the edited file.
+These are separate child environments. Do not set a global preload. If the
+child already has LD_PRELOAD, append the new path with a colon. Keep the
+existing value, arguments and all other children. Do not add a duplicate
+variable. Keep the original comment syntax. Review the exact diff.
+Save the changed copy as `smartphone_integrator.json.prepared`.
 
-Keep the file's original comment syntax. Validate it with the unit's own
-framework parser before installation: the `/eso/bin/jsonlint` command in
-the unit command set below checks the prepared file on the unit. Stop if it
-reports an error. A generic JSON parser on a computer is not a substitute. Do not change the launcher for the HMI, which
-draws screens and handles input.
+Read `docs/SETTINGS.md` before you change the supplied configuration.
+The GAL configuration enables its direct cluster output. The DIO example
+uses its video receiver and decoder; startup tests do not prove a CarPlay
+cluster picture. The LSD configuration enables wireless Android Auto and
+our settings pages. The TCP command listener is off. The wireless TCP port
+opening is on, on the access point interface uap0 only.
+Do not enable other features only because they built.
 
-Review the supplied `gal_loader.conf` and `dio_loader.conf` on the computer.
-Use [Settings](docs/SETTINGS.md) for component keys, defaults and limits.
+## Copy the prepared files
 
-The bundle copies each component's `examples` configuration without changes.
-These same files are documented in each component README.
-
-The supplied GAL file enables Android Auto cluster video with the whole-line
-flag `cluster` and vehicle sensor data with `sensor`. It uses direct cluster
-video output (`cluster_output=0`) and presents the unit to the phone as Google's Desktop Head Unit
-(`identify_as_dhu=1`), an Android Auto development receiver. Electric-vehicle model sending remains off. Remove a
-flag or put `#` before it to disable that feature. Set `identify_as_dhu=0`
-if you do not want the development receiver identity.
-
-The supplied DIO file enables CarPlay cluster video: the whole-line
-`altscreen` flag receives the phone stream, `clustervideo` forwards it, and
-`cluster_output=2` selects the decoder. The direct `cluster` module remains
-commented out. To disable the decoder path, comment out `altscreen` and
-`clustervideo` and set `cluster_output=0`. The example sets `cp_suppress_navigation_active=1` to filter the phone
-navigation-active flag before the native receiver handles it. Set it to `0`
-to leave that flag unchanged. These exact components passed Pi startup checks only. They still need
-CarPlay display tests on a MIB2 High unit. Do not enable
-other features only because their libraries built successfully.
-
-## Copy the bundle files
-
-The bundle's `card` directory contains this layout:
-
-```text
-card/
-  gal-extender/
-    libgal_loader.so
-    gal_loader.conf
-  dio-extender/
-    libdio_loader.so
-    libdio_altscreen.so
-    libdio_clustervideo.so
-    cluster-video
-    dio_loader.conf
-  mib2-extenders/
-    file-checksum
-```
-
-Use `RELEASE.json` for the complete file list and its SHA256 checksums.
-For a first install, the selected extender directories must not exist. If they exist, stop and
-inspect the previous install. Do not replace saved settings with a sample.
-For an update, keep all existing settings, including keys that you do not
-recognize. Do not replace an existing configuration with the supplied example.
-
-Copy the prepared extender configuration files first. Then copy the matching
-libraries, decoder and checksum command. Copy the contents
-of `card` into the chosen install folder, not the `card` directory itself.
-Keep the executable modes. Omit an unused extender directory and its preload
-edit together. Keep `mib2-extenders/file-checksum` for either install.
-
-Make a `mib2-extenders-prepared` directory in the install folder. Copy the
-edited phone configuration into it as `smartphone_integrator.json`. This
-private file must not enter a public repository or release. Keep its original
-copy on the computer and in the unit-side backup made below.
-
-## Unit command set
-
-Run these commands from the toolkit's MMX command shell, one at a time.
-Stop at any error. The install folder must already be writable. Record the configuration
-filesystem's original mount mode before any remount. The commands below use
-`/mnt/system` for that filesystem. Run `mount` without arguments in the
-unit shell to list mounted filesystems and their read-only or writable modes:
+Open the toolkit's MMX command shell before the transfer. Keep this shell
+open for the following installation commands. Run `mount` to find the storage
+mount that contains `<INSTALL_FOLDER>`. Replace `<STORAGE_MOUNT>` below with
+that mount point. A mount listing does not show its write access on all units.
+Check write access with the shell instead:
 
 ```sh
 mount
+storage_mount="<STORAGE_MOUNT>"
+for p in "$storage_mount" /mnt/app /mnt/system; do
+    if [ -w "$p" ]; then echo "$p writable"; else echo "$p not writable"; fi
+done
 ```
 
-Check that `/mnt/system` is the system mount used by the toolkit for the
-configuration file. If that mount is absent or the toolkit uses another
-layout, stop: do not run the remount commands for a different filesystem.
+Record all three results. In this root shell, a not-writable result requires
+a writable remount before writes. Make only the install storage writable now,
+and omit this command if it was already writable:
 
 ```sh
-# Select the one install folder and name the files.
+mount -uw "$storage_mount"
+```
+
+Run the write-access check again. Stop if the storage is still not writable.
+Keep the recorded original state. Restore it on success and on error.
+
+For a first install, the component folders must not exist on the unit.
+Copy the contents of `prepared/card` into `<INSTALL_FOLDER>`. Do not copy
+the `card` folder itself. Keep file modes. Copy text configuration first,
+then the matching libraries and programs. The component folders are:
+
+- `gal-extender`
+- `dio-extender`
+- `lsd-extender`
+- `mib2-extenders`
+
+Create `<INSTALL_FOLDER>/prepared` through the toolkit's file transfer.
+Copy `lsd.sh.prepared` and `smartphone_integrator.json.prepared` there.
+No stock startup file is changed by this transfer.
+
+## Install the startup files
+
+Continue in the same MMX command shell. Run one command at a time. Stop at
+an error. Use the write-access results recorded above for `/mnt/app` and
+`/mnt/system`. Stop if these are not the toolkit's application and system
+mounts. Do not infer their state from missing flags in the mount listing.
+
+```sh
 cd "<INSTALL_FOLDER>"
+launcher=/mnt/app/eso/hmi/lsd/lsd.sh
 config=/etc/eso/production/smartphone_integrator.json
-prepared=mib2-extenders-prepared/smartphone_integrator.json
-# Check the shipped command before a startup-file change.
-./mib2-extenders/file-checksum --help
-```
-
-### First install: save the original
-
-Run this block only for the first install. An existing original-backup
-folder is an error: keep it unchanged and use the update procedure instead.
-
-```sh
-backup_dir=mib2-extenders-original
-mkdir "$backup_dir"
-backup="$backup_dir/smartphone_integrator.json"
-cp "$config" "$backup"
+mkdir original-startup
+cp "$launcher" original-startup/lsd.sh
+cp "$config" original-startup/smartphone_integrator.json
 sync
+./mib2-extenders/file-checksum "$launcher" original-startup/lsd.sh
+./mib2-extenders/file-checksum "$config" original-startup/smartphone_integrator.json
+/bin/sh -n prepared/lsd.sh.prepared
+LD_LIBRARY_PATH=/eso/lib:$LD_LIBRARY_PATH /eso/bin/jsonlint --file prepared/smartphone_integrator.json.prepared
 ```
 
-### Update: save the currently installed configuration
+The backup folder must not exist before mkdir. Keep it unchanged after
+installation. Each checksum command prints two hashes. They must be equal.
+An exit status of zero means the files were read; it does not compare them.
+Stop if either syntax check fails.
 
-Keep `mib2-extenders-original` unchanged. Start from the current unit
-configuration and preserve every existing feature setting and unrelated
-value. Save a new dated backup before each update. If the directory name
-already exists, stop and choose a different time; never reuse a backup.
-
-On the computer, print the dated assignment with its standard `date` tool:
-
-```text
-date '+backup_dir=mib2-extenders-update-%Y%m%dT%H%M%S'
-```
-
-Copy the one printed `backup_dir=...` line into the unit shell. This assigns
-a folder name; it changes no file. Then run these commands in that unit shell:
+Make each read-only mount writable. Omit a command if that mount was
+already writable:
 
 ```sh
-mkdir "$backup_dir"
-backup="$backup_dir/smartphone_integrator.json"
-cp "$config" "$backup"
-sync
-```
-
-Record the printed value from this command with the update notes:
-
-```sh
-echo "$backup"
-```
-
-### Install the prepared file
-
-After exactly one backup block above, continue in the same shell. The
-`backup` variable names the configuration saved for this transaction.
-
-```sh
-# Compare the backup with the original and validate the prepared file.
-./mib2-extenders/file-checksum "$backup" "$config"
-/eso/bin/jsonlint --file "$prepared"
-# Make the configuration filesystem writable and install the prepared file.
+mount -uw /mnt/app
 mount -uw /mnt/system
-cp "$prepared" "$config"
-sync
-# Compare the installed file with the prepared file.
-./mib2-extenders/file-checksum "$prepared" "$config"
-# Restore read-only mode only if it was the original mode.
-mount -ur /mnt/system
-# STOP HERE. The remaining commands undo this install or update.
-# Restore only when this installed file still matches the prepared file.
-./mib2-extenders/file-checksum "$prepared" "$config"
-mount -uw /mnt/system
-cp "$backup" "$config"
-sync
-# Compare the restored file with the saved original.
-./mib2-extenders/file-checksum "$backup" "$config"
-mount -ur /mnt/system
 ```
 
-For each two-file checksum command, compare the two printed hashes before
-the next step. They must be equal. An exit status of zero means that both
-files were read; it does not mean their hashes match. The command reads files
-without changing them. It prints SHA256 in the same sum-line format as the
-host `sha256sum` command. A read or output error gives a nonzero exit status.
+Install the two prepared files, then check their contents:
 
-If the configuration filesystem was already writable, omit both read-only
-commands. Restore every changed mount to its original mode. A failed copy,
-parser check or hash comparison is a failed install. Restore the saved
-configuration and mount mode before any restart. Do not continue with a
-partial copy. No command in this set stops or restarts a process.
+```sh
+cp prepared/lsd.sh.prepared "$launcher"
+cp prepared/smartphone_integrator.json.prepared "$config"
+sync
+./mib2-extenders/file-checksum prepared/lsd.sh.prepared "$launcher"
+./mib2-extenders/file-checksum prepared/smartphone_integrator.json.prepared "$config"
+```
 
-After all checks succeed, use the unit's normal restart control.
-Inspect the stock main screen and normal projection first. Check the loader
-versions in the system log. Open the toolkit's MMX command shell and run:
+The hashes in each pair must be equal. Restore each mount to its original
+mode. Run only the commands for mounts that were originally read-only:
+
+```sh
+mount -ur /mnt/system
+mount -ur /mnt/app
+```
+
+If a copy or comparison fails, restore both saved startup files before a
+restart. Use the removal commands below and restore the mount modes.
+
+## Install the wireless Bluetooth wrapper
+
+Wireless Android Auto uses the unit's existing Bluetooth stack. The kit
+installs our wrapper at `/eso/bin/PhoneCustomer/btstack`. It leaves the
+vendor executable unchanged. It copies the card library into RAM at each
+Bluetooth start, so a later card update can replace the card file.
+
+Run this command only for a fresh installation with no existing customer
+wrapper:
+
+```sh
+sh "<INSTALL_FOLDER>/lsd-extender/native-aa-kit/install.sh"
+```
+
+Require `Installed wrapper; read-only remount succeeded. No service was started.`
+The kit manages its application remount and returns it to read-only mode.
+If a wrapper already exists, run `remove.sh` from the kit that installed it
+first. Use the removal command in this guide when the existing wrapper came
+from this same kit. Require successful removal before you run `install.sh`
+again. An unknown customer executable must stay unchanged; stop if the removal
+script refuses it.
+
+After all storage writes, flush them. Restore the storage mount to read-only
+only if its original result was not writable:
+
+```sh
+sync
+mount -ur "$storage_mount"
+```
+
+Repeat the write-access check. Require the original results for all three
+mounts. Restore these states on an error too, before a restart.
+
+Restart the unit through its usual control. The new Java startup block and
+Bluetooth wrapper require this restart. Check the stock main screen and
+normal wired projection first. In the MMX shell, read the system log:
 
 ```sh
 /bin/sloginfo
 ```
 
-Find these exact message bodies for the current receiver process. Timestamp
-and process fields can appear before each message:
+Find these exact message prefixes for the new boot and receiver process:
 
 ```text
-[GalLoader] loader 1.3.1+0
-loader v43 version=0.36.0+43
+[GalLoader] loader 1.4.2+1
+lsd-extender-core 2.3.2+522
+native-aa-btstack-wrapper version=1.0.6 decision=loaded
 ```
 
-The first line identifies GAL; the second identifies DIO. Only an installed
-and selected receiver is expected to log its line. An earlier log entry is
-not proof that a new process loaded the library. Check after a normal restart
-and receiver startup. A missing line, a different version or a load error
-means that the install is not verified. Save the output before further changes.
-Record visible map, guidance start, disconnect and return to the built-in map
-as separate results.
+The core line continues with its build information. The Bluetooth library
+must also log `kind=aa_diagnostics build=0.1.11+1` and
+`AA service published on factory RFCOMM channel`. A missing line or a load
+error is not a successful install.
 
-## Remove an extension
+First pair the phone with the unit through the normal Bluetooth menu.
+Open the HOME screen. In a tile's content-selection list, select **Extender settings**.
+Tap that tile's header to open **Extender menu**, then select **Android Auto**.
+Open **Wireless connection**. Turn **Wireless Android Auto** on and allow
+the paired phone there.
+The settings save briefly makes a read-only card writable when needed, then
+restores its read-only mode.
 
-To remove GAL only, remove only its loader path from `children.gal.envs` in
-a copy of the currently installed phone configuration. For DIO only, do the
-same in `children.carplay.envs`. Keep other preload paths and unrelated fields.
-Validate, review and install that copy with the same procedure.
+The unit's Wi-Fi hotspot must already work. Set its network name and WPA2
+passphrase in the unit's normal Wi-Fi settings. The credential program reads
+missing network data from the active `uap0` hotspot with `uaputl` and
+`ifconfig`. It needs the original passphrase, not a derived 64-character key.
 
-The restore commands above undo the last transaction: after an update,
-they restore the previously installed extension configuration. For complete
-removal, use the first original backup only if no later configuration change
-would be lost. Otherwise remove only the owned preload edits from a
-copy of the current file. A configuration edit does not stop a running loader
-or decoder. End projection through the stock controls before a normal restart.
-Do not delete a running executable.
+Before hotspot detection, the program reads any `AAWG_*` variables supplied
+by its launcher's process environment. In a new installation, the launcher
+inherits that environment from the HMI Java process. This guide sets no
+passphrase override. A fresh installation on firmware that returns only a
+derived key is not supported in this release. Do not erase an existing
+credential override when you update a working installation.
 
-Keep the extension files until stock projection works after the restart.
-Then remove only the owned extension directories from storage. Keep the
-toolkit, maps, media, credentials and other content. Removing storage alone
-is not a tested uninstall. Keep the original files for recovery.
+Start Android Auto on the paired phone without a cable. A complete Wi-Fi
+configuration, an incoming native AA channel and projection are separate
+checks. Do not infer projection from a service-published line alone.
+Bluetooth calls must still work.
+
+## Remove the extensions
+
+End projection through the stock controls. Use the same storage folder.
+Remove only the wrapper installed by this kit:
+
+```sh
+sh "<INSTALL_FOLDER>/lsd-extender/native-aa-kit/remove.sh"
+```
+
+Require its successful removal and read-only restoration. It refuses an
+unknown customer executable. Keep all files if it reports an error.
+
+Before the next commands, compare the current startup files with your
+installed prepared files. Restore the saved originals only if no later
+change would be lost. Otherwise remove only our preload paths and Java
+startup block from copies of the current files, validate those copies and
+use them instead. Preserve other programs and settings.
+
+```sh
+cd "<INSTALL_FOLDER>"
+./mib2-extenders/file-checksum prepared/lsd.sh.prepared /mnt/app/eso/hmi/lsd/lsd.sh
+./mib2-extenders/file-checksum prepared/smartphone_integrator.json.prepared /etc/eso/production/smartphone_integrator.json
+```
+
+If both pairs match, read `mount` and repeat the write-access check above.
+Make only not-writable application and system mounts writable:
+
+```sh
+mount
+mount -uw /mnt/app
+mount -uw /mnt/system
+cp original-startup/lsd.sh /mnt/app/eso/hmi/lsd/lsd.sh
+cp original-startup/smartphone_integrator.json /etc/eso/production/smartphone_integrator.json
+sync
+./mib2-extenders/file-checksum original-startup/lsd.sh /mnt/app/eso/hmi/lsd/lsd.sh
+./mib2-extenders/file-checksum original-startup/smartphone_integrator.json /etc/eso/production/smartphone_integrator.json
+mount -ur /mnt/system
+mount -ur /mnt/app
+```
+
+Omit each remount that is not needed, and restore the original mount modes.
+Compare each printed hash pair. Stop if they differ. Restart through the
+usual control. Check stock startup and wired projection before you remove
+only the four owned component folders through the toolkit's file transfer.
+Repeat the storage write-access check, writable remount if necessary, and
+original-state restoration around that removal. Keep the toolkit, media, maps and
+recovery copies. Removing storage alone is not an uninstall.
